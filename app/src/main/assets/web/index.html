@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120f1f">
+<title>PartyTime</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="banner" class="banner hidden">Nincs kapcsolat a játékmesterrel… újrapróbálom</div>
+<div id="toasts"></div>
+
+<!-- ============ JOIN ============ -->
+<section id="joinView" class="join hidden">
+  <div class="logo-big">Party<span>Time</span></div>
+  <div class="emoji-row">🕵️🎭🔟</div>
+  <div class="card stack">
+    <h2>Csatlakozás</h2>
+    <p class="muted small" id="joinHostInfo">Add meg a neved, amivel a többiek látni fognak.</p>
+    <input type="text" id="joinName" maxlength="20" placeholder="Neved" autocomplete="off">
+    <button class="btn primary block big" id="joinBtn">Belépek a buliba 🎉</button>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="gameView" class="hidden">
+  <header class="top">
+    <button class="btn sm ghost hidden" id="homeBtn" title="Menü">⌂</button>
+    <div class="logo">Party<span>Time</span></div>
+    <div class="me-chip" id="meChip"></div>
+  </header>
+
+  <main>
+    <!-- MISSION -->
+    <div class="tab" id="tab-mission">
+      <div id="missionMain"></div>
+      <div id="missionGm"></div>
+      <div id="missionBoard"></div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="tab hidden" id="tab-activity">
+      <div id="actScore"></div>
+      <div id="actRound"></div>
+      <div class="card stack" id="riddleForm">
+        <h3>Feladvány beküldése</h3>
+        <p class="muted small" style="margin:0">A feladványodat a <b>másik csapat</b> egyik játékosa fogja előadni, a saját csapatának kell kitalálnia.</p>
+        <input type="text" id="riddleText" maxlength="80" placeholder="pl. Darth Vader, Titanic, zsiráf…" autocomplete="off">
+        <div class="seg" id="riddleCat"></div>
+        <button class="btn primary block" id="riddleSend">Beküldöm</button>
+        <div id="myRiddles"></div>
+      </div>
+      <div id="actGm"></div>
+      <div id="actHistory"></div>
+    </div>
+
+    <!-- TOP10 -->
+    <div class="tab hidden" id="tab-top10">
+      <div id="topMain"></div>
+      <div id="topGm"></div>
+    </div>
+
+    <!-- PLAYERS -->
+    <div class="tab hidden" id="tab-players">
+      <div id="joinInfo"></div>
+      <div id="playerList"></div>
+      <div class="card stack">
+        <h3>Én</h3>
+        <div id="myInfo"></div>
+        <button class="btn block ghost" id="leaveBtn">Kilépés ebből a játékból</button>
+      </div>
+    </div>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="mission" class="active"><span class="ic">🕵️</span>Küldetés<span class="badge hidden" id="badge-mission"></span></button>
+    <button data-tab="activity"><span class="ic">🎭</span>Activity<span class="badge hidden" id="badge-activity"></span></button>
+    <button data-tab="top10"><span class="ic">🔟</span>TOP10<span class="badge hidden" id="badge-top10"></span></button>
+    <button data-tab="players"><span class="ic">👥</span>Játékosok</button>
+  </nav>
+</section>
+
+<div id="modalRoot"></div>
+<script src="app.js"></script>
+</body>
+</html>

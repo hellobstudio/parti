@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>PartyTime</title>
+<link rel="stylesheet" href="web/style.css">
+<style>
+  .role { display: grid; gap: 12px; }
+  .role .btn { min-height: 86px; font-size: 19px; flex-direction: column; gap: 2px; }
+  .role .btn small { font-weight: 400; font-size: 13px; opacity: .85; }
+  .hostItem { width: 100%; justify-content: space-between; margin-bottom: 8px; }
+  .spin { display: inline-block; animation: sp 1.2s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .ver { text-align: center; font-size: 12px; color: var(--muted); margin: 18px 0; }
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div class="join" style="margin-top:6vh">
+  <div class="logo-big">Party<span>Time</span></div>
+  <div class="emoji-row">🕵️🎭🔟</div>
+
+  <!-- running game -->
+  <div class="card stack hidden" id="running">
+    <h3>👑 Futó játék</h3>
+    <p class="small muted" style="margin:0">Te vagy a játékmester. A játék a háttérben is fut.</p>
+    <button class="btn gold block big" id="backToGame">Vissza a játékba</button>
+    <button class="btn bad block" id="stopGame">Játék befejezése</button>
+  </div>
+
+  <!-- step 1 -->
+  <div id="step1">
+    <div class="card stack">
+      <h3>A neved</h3>
+      <input type="text" id="name" maxlength="20" placeholder="pl. Anna" autocomplete="off">
+    </div>
+    <div class="role">
+      <button class="btn gold" id="asHost">👑 Játékmester vagyok<small>Én indítom és vezérlem a játékot (és játszom is)</small></button>
+      <button class="btn primary" id="asPlayer">🎉 Játékos vagyok<small>Csatlakozom egy futó játékhoz</small></button>
+    </div>
+  </div>
+
+  <!-- host: resume? -->
+  <div class="card stack hidden" id="hostResume">
+    <h3>👑 Játékmester</h3>
+    <p style="margin:0">Van egy korábbi, mentett játék. Folytatod, vagy újat kezdesz?</p>
+    <button class="btn gold block big" id="resumeBtn">▶ Előző játék folytatása</button>
+    <button class="btn block" id="newBtn">✨ Új játék</button>
+    <button class="btn ghost block sm" data-back>Vissza</button>
+  </div>
+
+  <!-- player: discovery -->
+  <div class="hidden" id="playerView">
+    <div class="card stack">
+      <h3>Elérhető játékok</h3>
+      <div id="hosts"><p class="muted center"><span class="spin">⏳</span> Keresés a hálózaton…</p></div>
+      <p class="small muted" style="margin:0">Ugyanazon a wifin kell lennetek a játékmesterrel (vagy az ő hotspotjára csatlakozva).</p>
+    </div>
+    <div class="card stack">
+      <h3>Kézi csatlakozás</h3>
+      <p class="small muted" style="margin:0">Ha nem jelenik meg a játék, írd be a címet, amit a játékmester a <b>Játékosok</b> fülön lát:</p>
+      <input type="text" id="addr" placeholder="pl. 192.168.1.23:8765" inputmode="url" autocomplete="off">
+      <button class="btn primary block" id="manualBtn">Csatlakozás</button>
+    </div>
+    <button class="btn ghost block" data-back>Vissza</button>
+  </div>
+
+  <div class="ver" id="ver"></div>
+</div>
+
+<script>
+(function () {
+  var A = window.PartyApp;
+  var $ = function (id) { return document.getElementById(id); };
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (kind ? ' ' + kind : '');
+    t.textContent = msg;
+    $('toasts').appendChild(t);
+    setTimeout(function () { t.remove(); }, 4000);
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  if (!A) { document.body.innerHTML = '<p style="padding:20px">Ez az oldal csak a PartyTime appban működik.</p>'; return; }
+
+  var st = JSON.parse(A.getState());
+  $('name').value = st.name || '';
+  $('ver').textContent = 'v' + st.version + ' · saját IP: ' + st.ip;
+  if (location.hash.length > 1) toast(decodeURIComponent(location.hash.slice(1)), 'err');
+
+  function show(id) {
+    ['step1', 'hostResume', 'playerView'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+    if (id !== 'playerView') A.stopDiscovery();
+  }
+  if (st.hostRunning) $('running').classList.remove('hidden');
+
+  function getName() {
+    var n = $('name').value.trim();
+    if (!n) { toast('Előbb add meg a neved!', 'err'); $('name').focus(); return null; }
+    A.setName(n);
+    return n;
+  }
+
+  $('backToGame').onclick = function () { A.open(JSON.parse(A.getState()).hostUrl); };
+  $('stopGame').onclick = function () {
+    if (!$('stopGame').dataset.sure) {
+      $('stopGame').dataset.sure = '1';
+      $('stopGame').textContent = 'Biztosan? Koppints újra a befejezéshez';
+      return;
+    }
+    A.stopHost();
+    $('running').classList.add('hidden');
+    toast('A játék leállt. Az állás el van mentve, később folytatható.');
+  };
+
+  function startHost(resume) {
+    var n = getName(); if (!n) return;
+    var r = JSON.parse(A.startHost(n, resume));
+    if (r.ok) A.open(r.url);
+    else toast('Nem sikerült elindítani: ' + r.error, 'err');
+  }
+  $('asHost').onclick = function () {
+    if (!getName()) return;
+    if (st.hostRunning) { A.open(JSON.parse(A.getState()).hostUrl); return; }
+    if (st.hasSave) show('hostResume'); else startHost(false);
+  };
+  $('resumeBtn').onclick = function () { startHost(true); };
+  $('newBtn').onclick = function () { startHost(false); };
+
+  var timer = null;
+  function joinUrl(url) {
+    var n = getName(); if (!n) return;
+    A.open(url + '?name=' + encodeURIComponent(n));
+  }
+  function refreshHosts() {
+    var list = JSON.parse(A.getHosts());
+    var el = $('hosts');
+    if (!list.length) {
+      el.innerHTML = '<p class="muted center"><span class="spin">⏳</span> Keresés a hálózaton…</p>';
+      return;
+    }
+    var h = list.map(function (x) {
+      return '<button class="btn primary hostItem" data-url="' + esc(x.url) + '"><span>👑 ' + esc(x.name) + ' játéka</span><span class="small">' + esc(x.ip) + ' ›</span></button>';
+    }).join('');
+    if (el._h !== h) { el.innerHTML = h; el._h = h; }
+  }
+  $('hosts').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-url]');
+    if (b) joinUrl(b.dataset.url);
+  });
+  $('asPlayer').onclick = function () {
+    if (!getName()) return;
+    show('playerView');
+    A.startDiscovery();
+    refreshHosts();
+    clearInterval(timer);
+    timer = setInterval(refreshHosts, 1000);
+  };
+  $('manualBtn').onclick = function () {
+    var a = $('addr').value.trim();
+    if (!a) { toast('Írd be a címet!', 'err'); return; }
+    $('manualBtn').disabled = true;
+    $('manualBtn').textContent = 'Kapcsolódás…';
+    setTimeout(function () {
+      var r = JSON.parse(A.probe(a));
+      $('manualBtn').disabled = false;
+      $('manualBtn').textContent = 'Csatlakozás';
+      if (r.ok) joinUrl(r.url);
+      else toast('Ezen a címen nem található PartyTime játék.', 'err');
+    }, 50);
+  };
+  document.querySelectorAll('[data-back]').forEach(function (b) {
+    b.onclick = function () { clearInterval(timer); show('step1'); };
+  });
+})();
+</script>
+</body>
+</html>

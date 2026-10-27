@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+// GitHub Actions run number -> version code, so every new APK installs over the previous one
+def buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'hu.partytime.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "hu.partytime.app"
+        minSdk 24
+        targetSdk 34
+        versionCode buildNumber
+        versionName "1.0." + buildNumber
+    }
+
+    signingConfigs {
+        // A fixed key is committed so that every build can be installed as an update.
+        party {
+            storeFile file('partytime.keystore')
+            storePassword 'partytime'
+            keyAlias 'partytime'
+            keyPassword 'partytime'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.party
+        }
+        debug {
+            signingConfig signingConfigs.party
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'com.google.zxing:core:3.5.3'
+}
